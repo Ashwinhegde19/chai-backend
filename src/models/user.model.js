@@ -47,7 +47,7 @@ const userSchema = new Schema({
     refreshToken: {
         type: String
     }
-   
+
 },{timestamps: true}
 )
 
@@ -60,7 +60,7 @@ userSchema.methods.isPasswordCorrect = async function (password){
     return await bcrypt.compare(password, this.password)
 }
 
-userSchema.methods.generateAccessToken = function() {
+userSchema.methods.generateAccessToken = function() {   //shorter period
     return jwt.sign(
         {
             id: this._id,
@@ -76,7 +76,7 @@ userSchema.methods.generateAccessToken = function() {
         
     )
 }
-userSchema.methods.generateRefreshToken = function() {
+userSchema.methods.generateRefreshToken = function() {    //refreshtoken for longer period expiry
     return jwt.sign(
         {
             id: this._id,
