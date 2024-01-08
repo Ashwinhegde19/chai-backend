@@ -3,6 +3,7 @@ import {ApiError} from "../utils/ApiError.js"
 import { User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken"
 
 const generateAccessAndRefreshTokens = async(userID) => {
     try {
@@ -89,18 +90,18 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
     // req body - data
-    const{emai, username, password} = req.body
+    const{email, username, password} = req.body
     
-    if (!username ||!email) {
+    if (!username && !email) {
         throw new ApiError(400, "Username or email is required")
     }
 
     const user = await User.findOne({
-        $or:[{username}, {password}]
+        $or: [{username}, {email}]
     })
 
-    if(!user) {
-        throw new ApiError(401, "user does not exist")
+    if (!user) {
+        throw new ApiError(404, "User does not exist")
     }
 
     const isPasswordValid = await user.isPasswordCorrect(password)
@@ -112,7 +113,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id)
 
     const loggedInUser = await User.findById(user._id)
-    select("-password -refreshToken")
+    .select("-password -refreshToken")
 
     const options = {
         httpOnly: true,
@@ -135,12 +136,12 @@ const loginUser = asyncHandler(async (req, res) => {
 
 })
 
-const logoutUser = asyncHandler(async(res, res) => {
+const logoutUser = asyncHandler(async(req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: undefined 
             }
         },
         {
@@ -159,9 +160,23 @@ const logoutUser = asyncHandler(async(res, res) => {
     .json(new ApiResponse(200, {}, "User logged Out"))
 })
 
+const refreshAccessToken = asyncHandler(async(req, res) =>{
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+    if (incomingRefreshToken) {
+        throw new ApiError(401, "Unaurthorized request")
+    }
+
+    try {
+        
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token")
+    }
+})
 
 export { 
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    refreshAccessToken
  };
